@@ -191,11 +191,11 @@ func main() {
 			if err != nil {
 				Errors.Panic(err)
 			}
-			sourceinfo, err := os.Stat(v1.Name())
+			v1Path, err := filepath.Abs(".")
 			if err != nil {
 				Errors.Panic(err)
 			}
-			v1Path, err := filepath.Abs(".")
+			sourceinfo, err := os.Stat(v1Path)
 			if err != nil {
 				Errors.Panic(err)
 			}
@@ -237,10 +237,12 @@ func main() {
 					Errors.Panic(err)
 				}
 			}
-			err = os.Chtimes(v1.Name(), sourceinfo.ModTime(), sourceinfo.ModTime())
+			err = os.Chtimes(v1Path, sourceinfo.ModTime(), sourceinfo.ModTime())
+			//	Info.Println("chtimes of", "with", sourceinfo.ModTime(), "mode is", sourceinfo.Mode())
 			if err != nil {
 				Errors.Panic(err)
 			}
 		}
+
 	}
 }
