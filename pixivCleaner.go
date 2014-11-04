@@ -104,7 +104,7 @@ func copyDir(source string, dest string, root string) error {
 	for _, obj := range objects {
 		sourcefilepointer := source + "\\" + obj.Name()
 		destinationfilepointer := dest + "\\" + obj.Name()
-		duplicatefilepointer := root + "\\_duplicates_\\" + obj.Name()
+		duplicatefilepointer := root + "\\.duplicates\\" + obj.Name()
 		if obj.IsDir() {
 			err = copyDir(sourcefilepointer, destinationfilepointer, root)
 			if err != nil {
@@ -152,8 +152,8 @@ func initalise() (string, *os.File) {
 		os.Exit(1)
 	}
 	if _, err := os.Stat(".duplicates"); os.IsNotExist(err) {
-		rootinfo, _ := os.Stat(root)
-		err = os.Mkdir(".duplicates", rootinfo.Mode())
+		// rootinfo, _ := os.Stat(root)
+		err = os.Mkdir(".duplicates", 666)
 		if err != nil {
 			Errors.Panic(err)
 		}
