@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -43,7 +44,7 @@ func (s timeSlice) Len() int           { return len(s) }
 // 		sourcefile.Close()
 // 		err = os.Remove(source)
 // 		if err != nil {
-// 			log.Panic(err)
+// 			Errors.Panic(err)
 // 		}
 // 	}
 // 	return nil
@@ -53,36 +54,36 @@ func moveFile(source string, dest string, duplicate string) error {
 	if _, err := os.Stat(dest); err == nil {
 		// err := os.Remove(source)
 		// if err != nil {
-		// 	log.Panic(err)
+		// 	Errors.Panic(err)
 		// }
-		log.Println(source, "->", dest)
+		Info.Println(source, "-> Duplicate found ->", duplicate)
 		sourceinfo, err := os.Stat(source)
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 		err = os.Rename(source, duplicate)
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 		err = os.Chmod(duplicate, sourceinfo.Mode())
 		err = os.Chtimes(duplicate, sourceinfo.ModTime(), sourceinfo.ModTime())
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 	} else {
-		log.Println(source, "->", dest)
+		Info.Println(source, "->", dest)
 		sourceinfo, err := os.Stat(source)
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 		err = os.Rename(source, dest)
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 		err = os.Chmod(dest, sourceinfo.Mode())
 		err = os.Chtimes(dest, sourceinfo.ModTime(), sourceinfo.ModTime())
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 	}
 	return nil
@@ -107,88 +108,92 @@ func copyDir(source string, dest string, root string) error {
 		if obj.IsDir() {
 			err = copyDir(sourcefilepointer, destinationfilepointer, root)
 			if err != nil {
-				log.Println(err)
+				Info.Println(err)
 			}
 			sourceinfo, err := os.Stat(source)
 			if err != nil {
 				err = os.Chmod(dest, sourceinfo.Mode())
 				err = os.Chtimes(dest, sourceinfo.ModTime(), sourceinfo.ModTime())
 			}
-			log.Println("Removing folder: ", sourcefilepointer)
+			Info.Println("Removing folder: ", sourcefilepointer)
 			err = os.Remove(sourcefilepointer)
 			if err != nil {
-				log.Panic(err)
+				Errors.Panic(err)
 			}
 		} else {
 			err = moveFile(sourcefilepointer, destinationfilepointer, duplicatefilepointer)
 			if err != nil {
-				log.Println(err)
+				Info.Println(err)
 			}
 		}
 	}
 	return nil
 }
 
-func initalise() string {
-	root, err := filepath.Abs(".")
+var (
+	Info   *log.Logger
+	Errors *log.Logger
+)
+
+func initalise() (string, *os.File) {
+	fd, err := os.OpenFile("pixivCleaner.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Panic(err)
 	}
+	Info = log.New(io.MultiWriter(fd, os.Stdout), "INFO: ", log.Ldate|log.Ltime)
+	Errors = log.New(io.MultiWriter(fd, os.Stderr), "ERROR: ", log.Ldate|log.Ltime)
+	Info.Println("\n\n--- BEGINING NEW ENTRIES ---")
+	root, err := filepath.Abs(".")
+	if err != nil {
+		Errors.Panic(err)
+	}
 	if !strings.Contains(root, root) {
-		log.Println("Error: not a pixiv folder")
+		Info.Println("Error: not a pixiv folder")
 		os.Exit(1)
 	}
 	if _, err := os.Stat(".duplicates"); os.IsNotExist(err) {
 		rootinfo, _ := os.Stat(root)
 		err = os.Mkdir(".duplicates", rootinfo.Mode())
 		if err != nil {
-			log.Panic(err)
+			Errors.Panic(err)
 		}
 	}
-	if _, err := os.Stat("pixivCleaner.log"); os.IsNotExist(err) {
-		fd, err := os.Create("pixivCleaner.log")
-		if err != nil {
-			log.Panic(err)
-		}
-		defer func() {
-			defer fd.Close()
-		}()
-	}
-	return root
+	return root, fd
 }
 
 func main() {
 	//todo : custom logger
-	root := initalise()
+	root, fd := initalise()
+	defer fd.Close()
 	firstLevel, err := ioutil.ReadDir(root)
 	if err != nil {
-		log.Panic(err)
+		Errors.Panic(err)
 	}
 	for _, v1 := range firstLevel {
 		_ = os.Chdir(root)
 		if strings.HasPrefix(v1.Name(), ".") {
-			log.Printf("Folder %s is skipped\n", v1.Name())
+			Info.Printf("Folder %s is skipped\n", v1.Name())
 			continue
 		}
 		if v1.IsDir() {
 			err = os.Chdir(v1.Name())
 			if err != nil {
-				log.Panic(err)
+				Errors.Panic(err)
 			}
 			v1Path, err := filepath.Abs(".")
 			if err != nil {
-				log.Panic(err)
+				Errors.Panic(err)
 			}
 			secondLevel, err := ioutil.ReadDir(v1Path)
 			if err != nil {
-				log.Panic(err)
+				Errors.Panic(err)
 			}
 			subdir := make(timeSlice, 0)
 			for _, v2 := range secondLevel {
 				if v2.IsDir() {
 					v2Path, err := filepath.Abs(v2.Name())
 					if err != nil {
-						log.Panic(err)
+						Errors.Panic(err)
 					}
 					subdir = append(subdir, subdirStruct{date: v2.ModTime(), name: v2Path})
 				}
@@ -203,7 +208,7 @@ func main() {
 			sort.Sort(sort.Reverse(dateSorted))
 			dest, err := os.Open(dateSorted[0].name)
 			if err != nil {
-				log.Panic(err)
+				Errors.Panic(err)
 			}
 			defer dest.Close()
 			for _, v := range dateSorted {
@@ -211,10 +216,10 @@ func main() {
 					continue
 				}
 				copyDir(v.name, dateSorted[0].name, root)
-				log.Println("Removing folder: ", v.name)
+				Info.Println("Removing folder: ", v.name)
 				err = os.Remove(v.name)
 				if err != nil {
-					log.Panic(err)
+					Errors.Panic(err)
 				}
 			}
 		}
