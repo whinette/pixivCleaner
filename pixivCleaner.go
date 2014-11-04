@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+var (
+	Info   *log.Logger
+	Errors *log.Logger
+)
+
 type subdirStruct struct {
 	date time.Time
 	name string
@@ -66,6 +71,9 @@ func moveFile(source string, dest string, duplicate string) error {
 			Errors.Panic(err)
 		}
 		err = os.Chmod(duplicate, sourceinfo.Mode())
+		if err != nil {
+			Errors.Panic(err)
+		}
 		err = os.Chtimes(duplicate, sourceinfo.ModTime(), sourceinfo.ModTime())
 		if err != nil {
 			Errors.Panic(err)
@@ -81,6 +89,9 @@ func moveFile(source string, dest string, duplicate string) error {
 			Errors.Panic(err)
 		}
 		err = os.Chmod(dest, sourceinfo.Mode())
+		if err != nil {
+			Errors.Panic(err)
+		}
 		err = os.Chtimes(dest, sourceinfo.ModTime(), sourceinfo.ModTime())
 		if err != nil {
 			Errors.Panic(err)
@@ -113,7 +124,13 @@ func copyDir(source string, dest string, root string) error {
 			sourceinfo, err := os.Stat(source)
 			if err != nil {
 				err = os.Chmod(dest, sourceinfo.Mode())
+				if err != nil {
+					Errors.Panic(err)
+				}
 				err = os.Chtimes(dest, sourceinfo.ModTime(), sourceinfo.ModTime())
+				if err != nil {
+					Errors.Panic(err)
+				}
 			}
 			Info.Println("Removing folder: ", sourcefilepointer)
 			err = os.Remove(sourcefilepointer)
@@ -129,11 +146,6 @@ func copyDir(source string, dest string, root string) error {
 	}
 	return nil
 }
-
-var (
-	Info   *log.Logger
-	Errors *log.Logger
-)
 
 func initalise() (string, *os.File) {
 	fd, err := os.OpenFile("pixivCleaner.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -179,6 +191,10 @@ func main() {
 			if err != nil {
 				Errors.Panic(err)
 			}
+			sourceinfo, err := os.Stat(v1.Name())
+			if err != nil {
+				Errors.Panic(err)
+			}
 			v1Path, err := filepath.Abs(".")
 			if err != nil {
 				Errors.Panic(err)
@@ -220,6 +236,10 @@ func main() {
 				if err != nil {
 					Errors.Panic(err)
 				}
+			}
+			err = os.Chtimes(v1.Name(), sourceinfo.ModTime(), sourceinfo.ModTime())
+			if err != nil {
+				Errors.Panic(err)
 			}
 		}
 	}
