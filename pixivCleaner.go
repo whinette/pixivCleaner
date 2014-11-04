@@ -68,7 +68,10 @@ func moveFile(source string, dest string, duplicate string) error {
 		}
 		err = os.Rename(source, duplicate)
 		if err != nil {
-			Errors.Panic(err)
+			err = os.Remove(source)
+			if err != nil {
+				Errors.Panic(err)
+			}
 		}
 		err = os.Chmod(duplicate, sourceinfo.Mode())
 		if err != nil {
@@ -238,7 +241,7 @@ func main() {
 				}
 			}
 			err = os.Chtimes(v1Path, sourceinfo.ModTime(), sourceinfo.ModTime())
-			//	Info.Println("chtimes of", "with", sourceinfo.ModTime(), "mode is", sourceinfo.Mode())
+			Info.Println("chtimes of", "with", sourceinfo.ModTime(), "mode is", sourceinfo.Mode())
 			if err != nil {
 				Errors.Panic(err)
 			}
