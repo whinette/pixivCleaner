@@ -152,8 +152,8 @@ func initalise() (string, *os.File) {
 		os.Exit(1)
 	}
 	if _, err := os.Stat(".duplicates"); os.IsNotExist(err) {
-		// rootinfo, _ := os.Stat(root)
-		err = os.Mkdir(".duplicates", 666)
+		rootinfo, _ := os.Stat(root)
+		err = os.Mkdir(".duplicates", rootinfo.Mode())
 		if err != nil {
 			Errors.Panic(err)
 		}
@@ -162,7 +162,6 @@ func initalise() (string, *os.File) {
 }
 
 func main() {
-	//todo : custom logger
 	root, fd := initalise()
 	defer fd.Close()
 	firstLevel, err := ioutil.ReadDir(root)
