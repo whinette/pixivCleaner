@@ -162,7 +162,7 @@ func initalise() (string, *os.File) {
 	if err != nil {
 		Errors.Panic(err)
 	}
-	if !strings.Contains(root, root) {
+	if !strings.Contains(root, "Pixiv") {
 		Info.Println("Error: not a pixiv folder")
 		os.Exit(1)
 	}
@@ -190,6 +190,7 @@ func main() {
 			continue
 		}
 		if v1.IsDir() {
+			Info.Printf("Treating folder %s\n", v1.Name())
 			err = os.Chdir(v1.Name())
 			if err != nil {
 				Errors.Panic(err)
@@ -241,11 +242,9 @@ func main() {
 				}
 			}
 			err = os.Chtimes(v1Path, sourceinfo.ModTime(), sourceinfo.ModTime())
-			Info.Println("chtimes of", "with", sourceinfo.ModTime(), "mode is", sourceinfo.Mode())
 			if err != nil {
 				Errors.Panic(err)
 			}
 		}
-
 	}
 }
